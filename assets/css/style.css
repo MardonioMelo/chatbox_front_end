@@ -263,35 +263,3 @@ body {
 .chatbox__footer a:hover{
     color: #ac8ecc;
 }
-
-
-/*---------- Form para iniciar ------------- */
-
-.chat-form {
-    padding: 15px
-}
-
-.chat-form input,
-textarea,
-button {
-    margin-bottom: 10px
-}
-
-.chat-form textarea {
-    resize: none
-}
-
-.chat-form button {
-    background:  #7b36c5;
-    border: none;
-    transition-duration: 0.3s;   
-}
-
-.chat-form button:hover {    
-    background:  var(--primary);
-    border: none;
-    transition-duration: 0.3s;   
-}
-
-
-

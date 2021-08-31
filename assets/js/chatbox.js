@@ -5,11 +5,11 @@ class InteractiveChatbox {
             chatbox: b
         }
         this.icons = c;
-        this.state = false; 
+        this.state = false;
     }
 
     display() {
-        const {button, chatbox} = this.args;        
+        const { button, chatbox } = this.args;
         button.addEventListener('click', () => this.toggleState(chatbox))
     }
 
@@ -19,7 +19,7 @@ class InteractiveChatbox {
     }
 
     showOrHideChatBox(chatbox, button) {
-        if(this.state) {
+        if (this.state) {
             chatbox.classList.add('chatbox--active')
             this.toggleIcon(true, button);
         } else if (!this.state) {
@@ -32,20 +32,10 @@ class InteractiveChatbox {
         const { isClicked, isNotClicked } = this.icons;
         let b = button.children[0].innerHTML;
 
-        if(state) {
-            button.children[0].innerHTML = isClicked; 
-        } else if(!state) {
+        if (state) {
+            button.children[0].innerHTML = isClicked;
+        } else if (!state) {
             button.children[0].innerHTML = isNotClicked;
         }
     }
 }
-
-const chatButton = document.querySelector('.chatbox__button');
-const chatContent = document.querySelector('.chatbox__support');
-const icons = {
-    isClicked: '<i class="fa fa-times-circle-o fa-2x"></i>',
-    isNotClicked: '<i class="fa fa-comments-o fa-2x"></i>'
-}
-const chatbox = new InteractiveChatbox(chatButton, chatContent, icons);
-chatbox.display();
-chatbox.toggleIcon(false, chatButton);

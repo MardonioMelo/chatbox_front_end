@@ -8,7 +8,7 @@
         rel="stylesheet">
     <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-alpha1/dist/css/bootstrap.min.css' rel='stylesheet'>
     <link href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css' rel='stylesheet'>
-    <link rel="stylesheet" href="./assets/css/chat.css">
+    <link rel="stylesheet" href="./assets/css/style.css">
     <title>Chatbox</title>
 </head>
 
@@ -27,7 +27,7 @@
                     </div>
                 </div>
                 <div class="chatbox__messages">
-                    <div>
+                    <div id="j_print_msg">
                         <!-- Mensagem do cliente -->
                         <!-- <div class="messages__item messages__item--visitor">
                             Você pode me deixar falar com o suporte??
@@ -45,30 +45,87 @@
                             <span class="messages__dot"></span>
                         </div> -->
 
-                        <div class="text-center p-2">
-                            <span>Por favor, preencha o formulário para iniciar o chat!</span>
+                        <!-- Formulário de avaliação -->
+                        <!-- <div class="text-center p-2 mb-3">
+                            <span>Por favor, avalie nosso atendimento:</span>
                         </div>
-                        <div class="chat-form">
-                            <input type="text" class="form-control" placeholder="Nome">
-                            <textarea class="form-control" placeholder="Mensagem"></textarea>
-                            <button class="btn btn-success btn-block"> <i class="fa fa-paper-plane-o"></i> Enviar</button>
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                <input class="form-check-input" type="radio" name="aval">
+                                Excelente
+                            </label>
                         </div>
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                <input class="form-check-input" type="radio" name="aval">
+                                Ótimo
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                <input class="form-check-input" type="radio" name="aval" checked>
+                               Bom
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                <input class="form-check-input" type="radio" name="aval">
+                               Ruim
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                <input class="form-check-input" type="radio" name="aval">
+                               Péssimo
+                            </label>
+                        </div>
+                        <div class="py-3">
+                            <button class="btn btn-outline-primary btn-block">
+                                ✔ Avaliar e Encerrar
+                            </button>
+                        </div> -->
+
+                        <!-- Aguardar atendimento -->
+                        <!-- <div class="text-center p-2 mb-3">
+                            <span>Por favor, aguarde até chegar sua vez.</span>
+                            <span>Na sua frente tem <b>1</b> pessoa(s)</span>
+                        </div>
+                        <div class="py-3">
+                            <button class="btn btn-outline-danger btn-block">
+                                <i class="fa fa-times"></i> Cancelar Atendimento
+                            </button>
+                        </div> -->
+
+                        <!-- Novo atendimento -->
+                        <!-- <div class="text-center p-2 mb-3">
+                            <span>Obrigado!<br> Clique no botão para solicitar novo atendimento.</span>
+                        </div>
+                        <div class="py-3">
+                            <button class="btn btn-warning btn-block">
+                                <i class="fa fa-bullhorn"></i> Novo Atendimento
+                            </button>
+                        </div> -->
 
                     </div>
                 </div>
-               <div class="chatbox__footer">
+                <div class="chatbox__footer">
                     <!-- <input type="text" placeholder="Mensagem...">
                     <a href="javascript:;" class="chatbox__send--footer">
                         <i class="fa fa-paper-plane-o"></i>
                     </a> -->
-                </div> 
+                </div>
             </div>
             <div class="chatbox__button">
                 <button><i class="fa fa-comments-o"></i></button>
             </div>
         </div>
     </div>
-    <script src="./assets/js/chat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"
+        integrity="sha512-bZS47S7sPOxkjU/4Bt0zrhEtWx0y0CRkhEp8IckzK+ltifIIE9EMIMTuT/mEzoIMewUINruDBIR/jJnbguonqQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="./main.js"></script>
+    <script src="./assets/js/chatbox.js"></script>
+    <script src="./assets/js/script.js"></script>
 </body>
 
 </html>

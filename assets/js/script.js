@@ -7,49 +7,24 @@
     const url_token = `${my_setup.host_http}/token`
     const url_perfil = `${my_setup.host_http}/client/perfil`
     const url_ws = `${my_setup.host_ws}`
-    //Variáveis do DOM   
-    // const view_chat = document.getElementById('j_view_chat')
-    // const view_conectar = document.getElementById('j_view_conectar')
-    // const spin_load = document.getElementById('j_spin_load')
-    // const view_logout = document.getElementById('j_logout')
-    // const btn_login = document.getElementById('j_btn_login')
-    // const btn_conectar = document.getElementById('j_btn_conectar')
-    // const btn_logout = document.getElementById('j_btn_logout')
-    // const div_start_call = document.getElementById('j_div_start_call')
-    // const div_input_msg = document.getElementById('j_div_input_msg')
-    // const div_header_chat = document.getElementById('j_div_header_chat')
-    // const div_status_client = document.getElementById('j_div_status_client')
     //Outras Variáveis
-    // const btn_send = document.getElementById('j_btn_send')
-    // const input_send = document.getElementById('j_input_send')
     const print_msg = document.getElementById('j_print_msg')
-    // const print_calls = document.getElementById('j_print_calls')
-    // const btn_start_call = document.getElementById('j_btn_start_call')
-    // const btn_end_call = document.getElementById('j_btn_end_call')
-    // const btn_cancel_call = document.getElementById('j_btn_cancel_call')
+    // const btn_send = document.getElementById('j_btn_send')
+    // const input_send = document.getElementById('j_input_send')     
     //Variáveis de dados   
     var client = null
     var conn_ws = null
     var messages = null
-    // var item_call = []
-    // var data_calls = null
-    // var client = null
-    // var call = null
+    var subject = null
     //Comandos
     const cmd = {
         cmd_connection: cmdConnection,
-        // cmd_call_data_clients: cmdCallDataClients,
-        // cmd_call_history: cmdCallHistory,
-        // cmd_call_msg: cmdCallMsg,
-        // cmd_call_start: cmdCallStart,
-        // cmd_token_expired: cmdTokenExpired,
-        // cmd_error: cmdError,
-        // cmd_call_end: cmdCallEnd,
-        // cmd_call_cancel: cmdCallCancel
         cmd_call_create: cmdCallCreate,
         cmd_call_check_open: cmdCallCheckOpen,
-        cmd_n_waiting_line: cmdNWaitingLine
-
+        cmd_n_waiting_line: cmdNWaitingLine,
+        cmd_call_cancel: cmdCallCancel,
+        cmd_call_end: formCallEvaluation,
+        cmd_call_evaluation: cmdCallEnd
     }
     //chatbox 
     const chatButton = document.querySelector('.chatbox__button');
@@ -171,116 +146,6 @@
     }
 
     //###############
-    //  CALL
-    //###############  
-
-    //Obter os itens da lista de espera que estão listados na div pai
-    function getPrintCall() {
-        item_call = [...document.querySelectorAll('.j_item_call')]
-    }
-
-    //Ativar call selecionada
-    function activeCall() {
-        item_call.forEach((data) => { data.classList.remove('call-active') });
-        this.classList.add('call-active');
-        selectCall(this)
-        sessionStorage.setItem('call_in_progress', this.dataset.call)
-    }
-
-    //Mensagem do cliente referente ao assunto da call
-    function printCall(call, uuid, name, text, img, time, active = "", newmsg = false) {
-        img = img ? img : "./assets/img/user.png"
-        newmsg = newmsg ? 'block' : 'none'
-        let html = `<a href="#" class="list-group-item d-flex gap-3 py-3 m-1 rounded shadow-sm j_item_call animate__animated animate__bounceInDown ${active}" data-call="${call}" data-uuid="${uuid}" aria-current="true">
-                    <span class="position-absolute top-50 start-75 translate-middle p-1 bg-primary border border-white rounded-circle" style="display: ${newmsg}"></span>
-                    <img src="${img}" alt="twbs" width="32" height="32" class="rounded-circle flex-shrink-0 border border-2 border-white">                        
-                    <div class="d-flex gap-2 w-100 justify-content-between position-relative">                            
-                        <div>
-                            <h6 class="mb-0 fw-bold">${name}</h6>
-                            <p class="mb-0 opacity-75">${text}</p>
-                        </div>
-                        <small class="opacity-50 text-nowrap">${time}</small>
-                        <span class="position-absolute top-100 translate-middle badge rounded-pill bg-warning text-dark">#${call} </span>
-                    </div>
-                </a>`
-        print_calls.insertAdjacentHTML('beforeend', html)
-    }
-
-    //Consultar e atualizar listar de espera
-    function cmdCallDataClients(calls) {
-        let call_in_progress = sessionStorage.getItem('call_in_progress')
-        let active
-        print_calls.innerHTML = ''
-
-        if (calls) {
-            Object.values(calls.clients).forEach(function (data) {
-                active = call_in_progress == data.call.call_id ? 'call-active' : ''
-                if (data.call.call_attendant_uuid == attendant.uuid) { //listar call iniciadas pelo atendente
-                    printCall(data.call.call_id, data.user.uuid, data.user.name, data.call.call_objective, data.user.avatar, formatTime(data.call.call_update), active)
-                } else if (data.call.call_status == '1') { //listar call não iniciadas ainda
-                    printCall(data.call.call_id, data.user.uuid, data.user.name, data.call.call_objective, data.user.avatar, formatTime(data.call.call_update), active)
-                } else { //listar call iniciadas por outros atendentes
-                    //será implementado posteriormente                   
-                }
-            });
-
-            getPrintCall()
-            item_call.forEach(function (data) {
-                data.addEventListener('click', activeCall, false);
-            })
-
-            data_calls = calls.clients
-
-            if (!sessionStorage.getItem('call_in_progress')) {
-                htmlInfoInitCall()
-            }
-            if (item_call.length == 0) {
-                print_calls.innerHTML = '<span class="text-center p-1">Lista vazia.</span>'
-            }
-        } else {
-            data_calls = null
-        }
-    }
-
-    //Texto informativo para selecionar uma call
-    function htmlInfoInitCall() {
-        let html = `<div class="card bg-dark gap-3 py-3 p-2 m-5 shadow-lg rounded animate__animated animate__shakeX animate__delay-2s">
-                    <div class="card-body text-center">
-                        <h2><i class="bi bi-arrow-left"></i> Clique em um cliente da lista.</h2>
-                    </div>
-                </div>`
-        let html2 = `<div class="card bg-dark gap-3 py-3 p-2 m-5 shadow-lg rounded animate__animated animate__backInUp animate__delay-2s">
-                <div class="card-body text-center">
-                    <h2><i class="bi bi-emoji-sunglasses"></i> A fila está vazia.</h2>
-                </div>
-            </div>`
-        let call_in_progress = sessionStorage.getItem('call_in_progress')
-
-        //Verificar se alguma ja foi selecionada antes       
-        if (call_in_progress) {
-            selectCallInProgress(call_in_progress)
-        } else {
-            print_msg.innerHTML = ''
-            print_msg.insertAdjacentHTML('beforeend', html)
-            setTimeout(function () {
-                if (item_call.length == 0) {
-                    print_msg.innerHTML = ''
-                    print_msg.insertAdjacentHTML('beforeend', html2)
-                }
-            }, 1000)
-        }
-    }
-
-    //Mostrar call já selecionada
-    function selectCallInProgress(call_in_progress) {
-        setTimeout(() => {
-            let select_item = print_calls.querySelector(`[data-call="${call_in_progress}"]`)
-            selectCall(select_item)
-        }, 1500)
-    }
-
-
-    //###############
     //  CHAT
     //###############  
 
@@ -398,126 +263,6 @@
         document.querySelector(`.j_item_call[data-call="${id}"] span`).style.display = newmsg
     }
 
-    //Iniciar call
-    function startCall() {
-
-        Swal.fire({
-            title: 'Inicia este atendimento?',
-            text: "Se iniciar este atendimento não será possível outro atendente iniciar!",
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Sim, iniciar este!',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                sendMessage({
-                    "cmd": "cmd_call_start",
-                    "call": div_input_msg.dataset.call
-                })
-            }
-        })
-    }
-
-    //Comando iniciar call
-    function cmdCallStart(data) {
-        notifyPrimary("Atendimento iniciado, boa sorte!")
-        div_input_msg.style.display = 'flex'
-        div_start_call.style.display = 'none'
-    }
-
-    //Finalizar call
-    function endCall() {
-
-        Swal.fire({
-            title: 'Finalizar este atendimento?',
-            text: "Se finalizar este atendimento não será possível enviar ou receber mais mensagens!",
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Sim, finalizar este!',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                sendMessage({
-                    "cmd": "cmd_call_end",
-                    "call": call.call_id
-                })
-            }
-        })
-    }
-
-    //Comando finalizar call
-    function cmdCallEnd(data) {
-        let html = `<div class="card bg-dark gap-3 py-3 p-2 m-5 shadow-lg rounded animate__animated animate__flipInX animate__delay-2s">
-    <div class="card-body text-center">
-        <h2><i class="bi bi-hand-thumbs-up"></i> Bom trabalho ${attendant.name}!</h2>
-    </div>
-    </div>`
-        attendant = getUser()
-        div_input_msg.style.display = 'none'
-        div_start_call.style.display = 'none'
-        print_msg.innerHTML = ''
-
-        sessionStorage.removeItem('call_in_progress')
-        headerChat()
-
-        setTimeout(function () {
-            if (item_call.length == 0) {
-                print_msg.insertAdjacentHTML('beforeend', html)
-            }
-        }, 1000)
-
-        notifyPrimary("Atendimento finalizado com sucesso!")
-    }
-
-    //Cancelar call
-    function cancelCall() {
-        Swal.fire({
-            title: 'Cancelar este atendimento?',
-            text: "Se cancelar este atendimento não será possível realizar outras ações para o mesmo!",
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Sim',
-            cancelButtonText: 'Não'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                sendMessage({
-                    "cmd": "cmd_call_cancel",
-                    "call": call.call_id
-                })
-            }
-        })
-    }
-
-    //Comando cancelar call
-    function cmdCallCancel() {
-        let html = `<div class="card bg-dark gap-3 py-3 p-2 m-5 shadow-lg rounded animate__animated animate__flipInX animate__delay-2s">
-    <div class="card-body text-center">
-        <h2><i class="bi bi-hand-thumbs-up"></i> Bom trabalho ${attendant.name}!</h2>
-    </div>
-    </div>`
-        attendant = getUser()
-        div_input_msg.style.display = 'none'
-        div_start_call.style.display = 'none'
-        print_msg.innerHTML = ''
-
-        sessionStorage.removeItem('call_in_progress')
-        headerChat()
-
-        setTimeout(function () {
-            if (item_call.length == 0) {
-                print_msg.insertAdjacentHTML('beforeend', html)
-            }
-        }, 1000)
-
-        notifyPrimary("Atendimento cancelado com sucesso!")
-    }
-
 
     //###############
     //  HISTÓRICO
@@ -542,9 +287,6 @@
             }
         });
     }
-
-
-
 
     //###############
     //  TOKEN
@@ -582,20 +324,16 @@
                         saveDataToken(res.data.error)
                         requestPerfil(res.data.error.token)
                         callback(my_setup.name)
-                        //initSocket(res.data.error.token)         
                     } else {
-                        // changeState('conectar')
                         console.log(res.data.error.msg)
                     }
                 })
                 .catch(function (err) {
-                    // changeState('conectar')     
                     console.log(err)
                     console.log('Não foi possível gerar sua autentificação, erro na conexão com o servidor HTTP.')
                 });
         } else {
             callback(my_setup.name)
-            //changeState('chat')          
         }
     }
 
@@ -632,9 +370,10 @@
     //###############   
 
     //Formulário de solicitação
-    function formCreateCall(name) {
+    function formCreateCall() {
+        let user = getUser()
         let html = `<div class="text-center p-2 mb-3">                      
-                        <span>${name}, por gentileza, preencha o formulário para solicitar bate-papo!</span>
+                        <span>${user.name}, por gentileza, preencha o formulário para solicitar bate-papo!</span>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Assunto:</label>
@@ -649,27 +388,29 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <button class="btn btn-outline-success btn-block" id="j_call_create">
+                        <button class="btn btn-outline-success btn-block" id="j_btn_call_create">
                             <i class="fa fa-comments" aria-hidden="true"></i> Solicitar bate-papo
                         </button>
                     </div>`
+
         print_msg.innerHTML = html
-        document.getElementById('j_call_create').onclick = () => validFormCreateCall()
+        document.getElementById('j_btn_call_create').onclick = () => validFormCreateCall()
+        clearSession()
     }
 
-    //Enviar Formulário de solicitação
+    //Validar Formulário de abertura da call
     function validFormCreateCall() {
-        let subject = print_msg.querySelector("select[name=subject]").value
+        subject = print_msg.querySelector("select[name=subject]").value
         let invalid = print_msg.querySelector(".invalid-feedback")
         let loading = `<div class="text-center">
-                        <div class="spinner-border text-info" role="status">
-                        <span class="visually-hidden"></span>
-                        </div>
-                    </div>`
+                            <div class="spinner-border text-info" role="status">
+                            <span class="visually-hidden"></span>
+                            </div>
+                        </div>`
 
         if (subject) {
             print_msg.innerHTML = loading
-            initSocket(getToken(), subject)
+            initSocket(getToken(), true)
         } else {
             invalid.style.display = "block"
             setTimeout(() => {
@@ -680,25 +421,176 @@
 
     //Enviar dados para abertura da call
     function sendCallCreate(subject) {
-        sendMessage({
-            "cmd": "cmd_call_create",
-            "objective": subject
-        })
+        if (subject) {
+            sendMessage({
+                "cmd": "cmd_call_create",
+                "objective": subject
+            })
+        }
     }
 
     //Comando ao criar call
-    function cmdCallCreate(data) {
-        console.log(data)
+    function cmdCallCreate(res) {
+        let data = res.error.data
+        sessionStorage.setItem("chatbox_content", "waiting_line")
+        sessionStorage.setItem("chatbox_call", data.call)
     }
 
     //Comando de call aberta
-    function cmdCallCheckOpen(data) {
-        console.log(data)
+    function cmdCallCheckOpen(res) {
+        let data = res.error.data
+
+        if (res.result) {
+            sendMessage({
+                "cmd": "cmd_n_waiting_line"
+            })
+            sessionStorage.setItem("chatbox_call", data.data[0].call)
+        } else if (subject) {
+            sendCallCreate(subject)
+            subject = null
+        } else {
+            formCreateCall()
+        }
     }
 
-    //Comando do número da fila da call
-    function cmdNWaitingLine(data){
-        console.log(data)
+    //Comando do número da fila de espera
+    function cmdNWaitingLine(res) {
+        let data = res.error.data
+        let chatbox_content = sessionStorage.getItem("chatbox_content")
+        let chatbox_row = sessionStorage.getItem("chatbox_row")
+        let row
+
+        if (!chatbox_row) {
+            row = data.row
+        } else if (Number(data.row) >= Number(chatbox_row)) {
+            row = chatbox_row
+        } else {
+            row = data.row
+        }
+
+        if (Number(data.row) == 1 && chatbox_content == "waiting_line") {
+            formCreateCall()
+        } else {
+            sessionStorage.setItem("chatbox_row", row)
+            showWaitingMessage(row)
+        }
+    }
+
+    //Mostrar mensagem da fila de espera
+    function showWaitingMessage(n) {
+        let html = `<div class="text-center p-2 mb-3">
+                        <span>Por favor, aguarde até chegar sua vez.</span>
+                        <span>A qualquer momento um dos nossos atendentes irá te responder por aqui.</span>
+                        <span>Fila de espera: <b>${n}</b></span>                       
+                    </div>
+                    <div class="py-3">
+                        <button class="btn btn-outline-danger btn-block" id="j_btn_call_cancel">
+                            <i class="fa fa-times"></i> Cancelar Solicitação
+                        </button>
+                    </div>`
+        print_msg.innerHTML = html
+        document.getElementById('j_btn_call_cancel').onclick = () => sendCallCancel()
+    }
+
+    //Consultar número da fila
+    function requestNWaitingLine() {
+        initSocket(getToken())
+    }
+
+    //Cancelar solicitação de bate-papo
+    function sendCallCancel() {
+        let call = sessionStorage.getItem("chatbox_call")
+        sendMessage({
+            "cmd": "cmd_call_cancel",
+            "call": call
+        })
+    }
+
+    //Comando ao cancelar bate-papo
+    function cmdCallCancel() {
+        formCreateCall()
+    }
+
+    //Comando ao finalizar call
+    function cmdCallEnd() {
+        let html = `<div class="text-center p-2 mb-3">
+                        <span>Obrigado!<br> Este bate-papo foi encerrado.</span>
+                    </div>
+                    <div class="py-3">
+                        <button class="btn btn-warning btn-block" id="j_btn_new_call">
+                            <i class="fa fa-bullhorn"></i> Novo Atendimento
+                        </button>
+                    </div>`
+        print_msg.innerHTML = html
+        sessionStorage.setItem("chatbox_content", "call_end")
+        document.getElementById('j_btn_new_call').onclick = () => createToken(formCreateCall)
+    }
+
+    //Formulário de avaliação do atendimento
+    function formCallEvaluation() {
+        let html = ` <div class="text-center p-2 mb-3">
+                        <span>Por favor, avalie nosso atendimento:</span>
+                    </div>
+                    <div class="form-check">
+                        <label class="form-check-label">
+                            <input class="form-check-input" type="radio" name="aval" value="5">
+                            😍 Excelente
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <label class="form-check-label">
+                            <input class="form-check-input" type="radio" name="aval" value="4">
+                            😃 Ótimo
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <label class="form-check-label">
+                            <input class="form-check-input" type="radio" name="aval" value="3" checked>
+                            🙂 Bom
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <label class="form-check-label">
+                            <input class="form-check-input" type="radio" name="aval" value="2">
+                            😕 Ruim
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <label class="form-check-label">
+                            <input class="form-check-input" type="radio" name="aval" value="1">
+                            😤 Péssimo
+                        </label>
+                    </div>
+                    <div class="py-3">
+                        <button class="btn btn-outline-primary btn-block" id="j_call_evaluation">
+                            ✔ Avaliar e Encerrar
+                        </button>
+                    </div>`
+        print_msg.innerHTML = html
+        sessionStorage.setItem("chatbox_content", "call_evaluation")
+        document.getElementById('j_call_evaluation').onclick = () => sendCallEvaluation()
+    }
+
+    //Enviar avaliação do atendimento
+    function sendCallEvaluation() {
+        let evaluation = print_msg.querySelector("input[name=aval]:checked").value
+        let call = sessionStorage.getItem("chatbox_call")
+        let sendData = () =>{ sendMessage({
+            "cmd": "cmd_call_evaluation",
+            "call": call,
+            "evaluation": evaluation
+        })}
+
+        initSocket(getToken(), false, sendData)
+    }
+   
+
+    //Limpar sessão
+    function clearSession() {
+        sessionStorage.removeItem("chatbox_call")
+        sessionStorage.removeItem("chatbox_row")
+        sessionStorage.setItem("chatbox_content", "call_create")
+        closeConn()
     }
 
     //Conteúdo do chatbox
@@ -708,17 +600,18 @@
 
             if (chatbox_content == "call_create") {
                 createToken(formCreateCall)
-            } else if (chatbox_content == "call_cancel") {
-            } else if (chatbox_content == "call_start") {
-            } else if (chatbox_content == "call_msg") {
-            } else if (chatbox_content == "call_end") {
-            } else if (chatbox_content == "call_evaluation") {
             } else if (chatbox_content == "waiting_line") {
+                requestNWaitingLine()
+            } else if (chatbox_content == "call_start") {
+                //fazer implementação para inciar chat
+            } else if (chatbox_content == "call_evaluation") {
+                formCallEvaluation()
             } else {
-                createToken(formCreateCall)
-                sessionStorage.setItem("chatbox_content", "call_create")
+                sessionStorage.setItem("chatbox_content", "waiting_line")
+                createToken(chatboxContent)
             }
-
+        } else {
+            closeConn()
         }
     }
 
@@ -728,30 +621,27 @@
     //###############
 
     //Abrir conexão
-    function initSocket(token, subject) {
+    function initSocket(token, check_open = true, callback) {
 
         conn_ws = new WebSocket(`${url_ws}/?t=${token}`);
 
         //Evento ao abrir conexão
         conn_ws.addEventListener('open', open => {
-            sendMessage({
-                "cmd": "cmd_call_check_open"
-            })
+            if (check_open) {
+                sendMessage({
+                    "cmd": "cmd_call_check_open"
+                })
+            }
+            if (callback) {
+                callback()
+            }
         })
 
         //Evento ao enviar/receber mensagens
         conn_ws.addEventListener('message', message => {
-            messages = JSON.parse(message.data)        
+            messages = JSON.parse(message.data)
             console.log(messages)
-            
-            if (messages.result) {
-                cmd[messages.error.data.cmd](messages.error.data)
-            } else if (messages.error.data.cmd == "cmd_call_check_open") {
-                sendCallCreate(subject)
-                console.log("Não existe call aberta!")
-            } else {
-                console.log(messages.error.msg)
-            }
+            cmd[messages.error.data.cmd](messages)
         })
 
         //Evento de error
@@ -780,18 +670,11 @@
         if (conn_ws) {
             conn_ws.close()
         }
-        sessionStorage.removeItem('call_in_progress')
-        sessionStorage.removeItem('user')
-        sessionStorage.removeItem('token_chat')
-        div_start_call.style.display = 'none'
-        div_input_msg.style.display = 'none'
-        headerChat()
-        htmlInfoInitCall()
     }
 
     //Cmd conectado
     function cmdConnection() {
-       // console.log("Conectado no Ws de chat!")
+        console.log("Conectado no Ws de chat!")
     }
 
 

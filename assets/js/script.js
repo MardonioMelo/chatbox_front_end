@@ -7,10 +7,9 @@
     const url_token = `${my_setup.host_http}/token`
     const url_perfil = `${my_setup.host_http}/client/perfil`
     const url_ws = `${my_setup.host_ws}`
-    //Outras Variáveis
+    //Outras Variáveis 
     const print_msg = document.getElementById('j_print_msg')
-    // const btn_send = document.getElementById('j_btn_send')
-    // const input_send = document.getElementById('j_input_send')     
+    const print_input_footer = document.getElementById('j_print_input_footer')
     //Variáveis de dados   
     var client = null
     var conn_ws = null
@@ -24,7 +23,10 @@
         cmd_n_waiting_line: cmdNWaitingLine,
         cmd_call_cancel: cmdCallCancel,
         cmd_call_end: formCallEvaluation,
-        cmd_call_evaluation: cmdCallEnd
+        cmd_call_evaluation: cmdCallEnd,
+        cmd_call_start: cmdCallStart,
+        cmd_call_history: cmdCallHistory,
+        cmd_call_msg: cmdCallMsg
     }
     //chatbox 
     const chatButton = document.querySelector('.chatbox__button');
@@ -86,18 +88,17 @@
         return date;
     }
 
-    //Comando de token expirado
-    function cmdTokenExpired(data) {
-        notifyPrimary("O seu acesso ao chat expirou, vamos renova-lo em 5 segundos")
-        setTimeout(function () {
-            document.location.reload()
-        }, 5000)
+    //Obter id da call
+    function getCall() {
+        let data_call = JSON.parse(sessionStorage.getItem("chatbox_call"))
+        return data_call.call
     }
 
-    //Comando de error
-    function cmdError(data) {
-        notifyError(data.msg)
+    //Obter dados da call
+    function getDataCall() {
+        return JSON.parse(sessionStorage.getItem("chatbox_call"))
     }
+
 
     //###############
     //  Perfil
@@ -145,148 +146,6 @@
         return JSON.parse(sessionStorage.getItem("user"))
     }
 
-    //###############
-    //  CHAT
-    //###############  
-
-    //Povoar a mostrar cabeçalho do chat
-    function headerChat(call_id) {
-        if (call_id) {
-            div_header_chat.style.display = 'block'
-            div_header_chat.querySelector('img').src = client.avatar
-            div_header_chat.querySelector('h6').innerText = `${client.name} ${client.lastname}`
-            div_input_msg.dataset.call = call_id
-        } else {
-            div_header_chat.style.display = 'none'
-            div_header_chat.querySelector('img').src = './assets/img/user.png'
-            div_header_chat.querySelector('h6').innerText = 'Cliente'
-            div_input_msg.dataset.call = ""
-        }
-    }
-
-    //Selecionar call para troca de msg
-    function selectCall(data) {
-
-        let call_uuid = data.dataset.uuid
-        let call_id = data.dataset.call
-        call = data_calls[`call_${call_id}`].call
-        client = data_calls[`call_${call_id}`].user
-        print_msg.innerHTML = ''
-
-        printMsgClient(client.name, call.call_objective, formatTime(call.call_update), client.avatar)
-
-        sendMessage({
-            "cmd": "cmd_call_history",
-            "call": call_id,
-            "limit": 500,
-            "offset": 0
-        })
-
-        sendMessage({
-            "cmd": "cmd_check_user_on",
-            "check_on_uuid": call_uuid
-        })
-        headerChat(call_id)
-
-        if (Number(call.call_status) == 1) {
-            div_start_call.style.display = 'block'
-            div_input_msg.style.display = 'none'
-        } else {
-            div_start_call.style.display = 'none'
-            div_input_msg.style.display = 'flex'
-        }
-    }
-
-    //Escreve msg do cliente
-    function printMsgClient(name, text, time = false, img = false) {
-        img = img ? img : "./assets/img/user.png"
-        let html = ` <div class="list-group-item list-group-item d-flex gap-3 py-3 p-3 w-75 m-2 shadow msg-right animate__animated animate__fadeInDown">
-                    <img src="${img}" alt="twbs" width="32" height="32" class="rounded-circle flex-shrink-0">
-                    <div class="d-flex gap-2 w-100 justify-content-between">
-                        <div>
-                            <h6 class="mb-0 fw-bold">${name}</h6>
-                            <p class="mb-0 opacity-75">${text}</p>
-                        </div>
-                        <small class="opacity-50 text-nowrap">${time}</small>
-                    </div>
-                </div>`
-        print_msg.insertAdjacentHTML('beforeend', html)
-        addScroll()
-    }
-
-    //Html da msg do atendente
-    function printMsgAttendant(name, text, time) {
-        let html = `<div class="list-group-item list-group-item d-flex gap-3 py-3 p-3 w-75 m-2 shadow align-self-end msg-left animate__animated animate__fadeInDown">
-                    <div class="d-flex gap-2 w-100 justify-content-between">
-                        <div>
-                            <h6 class="mb-0 fw-bold">${name}</h6>
-                            <p class="mb-0 opacity-75">${text}</p>
-                        </div>
-                        <small class="opacity-50 text-nowrap">${time}</small>
-                    </div>
-                </div>`
-        print_msg.insertAdjacentHTML('beforeend', html)
-        addScroll()
-    }
-
-    //Enviar mensagem
-    function submitMsg() {
-
-        if (input_send.value.trim().length > 0) {
-            sendMessage({
-                "cmd": "cmd_call_msg",
-                "call": div_input_msg.dataset.call,
-                "text": input_send.value
-            })
-            printMsgAttendant(attendant.name, input_send.value, formatTime())
-            input_send.value = ""
-            markNewMsg(div_input_msg.dataset.call, false)
-        } else {
-            notifyWarning("Mensagens vazias não podem ser enviadas!")
-        }
-    }
-
-    //Print das mensagens recebidas
-    function cmdCallMsg(data) {
-
-        if (data.call == call.call_id) {
-            printMsgClient(client.name, data.text, formatTime(data.date), client.avatar)
-            markNewMsg(data.call, false)
-        } else {
-            markNewMsg(data.call, true)
-        }
-    }
-
-    //Marcar e desmarcar novas mensagens
-    function markNewMsg(id, newmsg = false) {
-        newmsg = newmsg ? 'block' : 'none'
-        document.querySelector(`.j_item_call[data-call="${id}"] span`).style.display = newmsg
-    }
-
-
-    //###############
-    //  HISTÓRICO
-    //###############  
-
-    //Listar mensagens anteriores da call
-    function cmdCallHistory(data) {
-        printHistory(data.chat)
-    }
-
-    //Listar histórico de mensagens
-    function printHistory(msgs) {
-        let date //UTC da ultima mensagem do cliente      
-        attendant = getUser()
-
-        msgs.forEach(function (msg) {
-            if (attendant.uuid == msg.origin) {
-                date = msg.date
-                printMsgAttendant(attendant.name, msg.text, formatTime(msg.date))
-            } else {
-                printMsgClient(client.name, msg.text, formatTime(msg.date), client.avatar)
-            }
-        });
-    }
 
     //###############
     //  TOKEN
@@ -433,7 +292,7 @@
     function cmdCallCreate(res) {
         let data = res.error.data
         sessionStorage.setItem("chatbox_content", "waiting_line")
-        sessionStorage.setItem("chatbox_call", data.call)
+        sessionStorage.setItem("chatbox_call", JSON.stringify(data))
     }
 
     //Comando de call aberta
@@ -441,10 +300,16 @@
         let data = res.error.data
 
         if (res.result) {
-            sendMessage({
-                "cmd": "cmd_n_waiting_line"
-            })
-            sessionStorage.setItem("chatbox_call", data.data[0].call)
+            sessionStorage.setItem("chatbox_call", JSON.stringify(data.data[0]))
+
+            if (data.data[0].status == "1") {
+                sendMessage({
+                    "cmd": "cmd_n_waiting_line"
+                })
+            } else if (data.data[0].status == "2") {
+                cmdCallStart()
+            }
+
         } else if (subject) {
             sendCallCreate(subject)
             subject = null
@@ -499,10 +364,9 @@
 
     //Cancelar solicitação de bate-papo
     function sendCallCancel() {
-        let call = sessionStorage.getItem("chatbox_call")
         sendMessage({
             "cmd": "cmd_call_cancel",
-            "call": call
+            "call": getCall()
         })
     }
 
@@ -574,16 +438,16 @@
     //Enviar avaliação do atendimento
     function sendCallEvaluation() {
         let evaluation = print_msg.querySelector("input[name=aval]:checked").value
-        let call = sessionStorage.getItem("chatbox_call")
-        let sendData = () =>{ sendMessage({
-            "cmd": "cmd_call_evaluation",
-            "call": call,
-            "evaluation": evaluation
-        })}
+        let sendData = () => {
+            sendMessage({
+                "cmd": "cmd_call_evaluation",
+                "call": getCall(),
+                "evaluation": evaluation
+            })
+        }
 
         initSocket(getToken(), false, sendData)
     }
-   
 
     //Limpar sessão
     function clearSession() {
@@ -593,26 +457,100 @@
         closeConn()
     }
 
-    //Conteúdo do chatbox
-    function chatboxContent() {
-        if (chatbox.state) {
-            let chatbox_content = sessionStorage.getItem("chatbox_content")
 
-            if (chatbox_content == "call_create") {
-                createToken(formCreateCall)
-            } else if (chatbox_content == "waiting_line") {
-                requestNWaitingLine()
-            } else if (chatbox_content == "call_start") {
-                //fazer implementação para inciar chat
-            } else if (chatbox_content == "call_evaluation") {
-                formCallEvaluation()
-            } else {
-                sessionStorage.setItem("chatbox_content", "waiting_line")
-                createToken(chatboxContent)
+    //###############
+    // Start Chat
+    //###############  
+
+    //Comando recebido quando o atendente inicia a call
+    function cmdCallStart() {
+        let html_form = `<input type="text" placeholder="Mensagem..." id="j_input_send">
+                        <a href="javascript:;" class="chatbox__send--footer" id="j_btn_send">
+                            <i class="fa fa-paper-plane-o"></i>
+                        </a>`
+
+        print_msg.innerHTML = ''
+        print_input_footer.innerHTML = html_form
+        document.getElementById('j_btn_send').onclick = () => submitMsg()
+        document.getElementById('j_input_send').onkeypress = (e) => {
+            if (e.key == 'Enter') {
+                submitMsg()
+                return false
             }
-        } else {
-            closeConn()
         }
+
+        initSocket(getToken(), false, requestHistory)
+        sessionStorage.setItem("chatbox_content", "call_start")
+    }
+
+    //Print msg do cliente
+    function printMsgClient(text, time) {
+        let html = `<div class="messages__item messages__item--operator">${text} <h6>${time}</h6></div>`
+        print_msg.insertAdjacentHTML('beforeend', html)
+        addScroll()
+    }
+
+    //Print msg do atendente
+    function printMsgAttendant(text, time) {
+        let html = `<div class="messages__item messages__item--visitor">${text} <h6>${time}</h6></div>`
+        print_msg.insertAdjacentHTML('beforeend', html)
+        addScroll()
+    }
+
+    //Enviar mensagem
+    function submitMsg() {
+        let call = getCall()
+        let input_send = document.getElementById('j_input_send')
+
+        if (input_send.value.trim().length > 0) {
+            sendMessage({
+                "cmd": "cmd_call_msg",
+                "call": call,
+                "text": input_send.value
+            })
+            printMsgClient(input_send.value, formatTime())
+            input_send.value = ""
+        }
+    }
+
+    //Print das mensagens recebidas
+    function cmdCallMsg(res) {
+        printMsgAttendant(res.error.data.text, formatTime(res.error.data.date))
+    }
+
+
+    //###############
+    //  HISTÓRICO
+    //###############  
+
+    function requestHistory() {
+        let data_call = getDataCall()
+
+        printMsgClient(data_call.objective, formatTime())
+        sendMessage({
+            "cmd": "cmd_call_history",
+            "call": data_call.call,
+            "limit": 500,
+            "offset": 0
+        })
+    }
+
+    //Listar mensagens anteriores da call
+    function cmdCallHistory(res) {
+        if (res.result) { printHistory(res.error.data.chat) }
+    }
+
+    //Listar histórico de mensagens
+    function printHistory(msgs) {
+        client = getUser()
+
+        msgs.forEach(function (msg) {
+            if (client.uuid == msg.origin) {
+                printMsgClient(msg.text, formatTime(msg.date))
+            } else {
+                printMsgAttendant(msg.text, formatTime(msg.date))
+            }
+        });
     }
 
 
@@ -678,11 +616,33 @@
     }
 
 
-
     //###############
     //  INICIAR
     //###############   
 
+    //Conteúdo do chatbox
+    function chatboxContent() {
+        if (chatbox.state) {
+            let chatbox_content = sessionStorage.getItem("chatbox_content")
+
+            if (chatbox_content == "call_create") {
+                createToken(formCreateCall)
+            } else if (chatbox_content == "waiting_line") {
+                requestNWaitingLine()
+            } else if (chatbox_content == "call_start") {
+                cmdCallStart()
+            } else if (chatbox_content == "call_evaluation") {
+                formCallEvaluation()
+            } else {
+                sessionStorage.setItem("chatbox_content", "waiting_line")
+                createToken(chatboxContent)
+            }
+        } else {
+            closeConn()
+        }
+    }
+
+    //Iniciar app
     function init() {
         chatbox.display()
         chatbox.toggleIcon(false, chatButton)

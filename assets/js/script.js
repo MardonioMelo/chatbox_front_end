@@ -121,11 +121,11 @@
                     if (res.data.result) {
                         setUser(res.data.error.data)
                     } else {
-                        console.log(res.data.error.msg);
+                        //console.log(res.data.error.msg);
                     }
                 })
                 .catch(function (err) {
-                    console.log(err)
+                    //console.log(err)
                 });
         }
     }
@@ -179,11 +179,11 @@
                         requestPerfil(res.data.error.token)
                         callback(my_setup.name)
                     } else {
-                        console.log(res.data.error.msg)
+                      //console.log(res.data.error.msg)
                     }
                 })
                 .catch(function (err) {                  
-                    console.log('Não foi possível gerar sua autentificação, erro na conexão com o servidor HTTP.')
+                    //console.log('Não foi possível gerar sua autentificação, erro na conexão com o servidor HTTP.')
                 });
         } else {
             callback(my_setup.name)
@@ -219,7 +219,7 @@
 
 
     //###############
-    //  Chat
+    //  Call
     //###############   
 
     //Formulário de solicitação
@@ -615,16 +615,16 @@
 
         //Evento de error
         conn_ws.addEventListener('error', error => {
-            console.log(`Error na conexão com o servidor de chat!`)
+            //console.log(`Error na conexão com o servidor de chat!`)
         })
 
         //Evento ao fechar conexão
         conn_ws.addEventListener('close', close => {
 
             if (close.code == 1006) {
-                console.log(`O servidor de chat está offline!`)
+                //console.log(`O servidor de chat está offline!`)
             } else if (close.code == 1000) {
-                console.log(`Conexão encerrada: ${messages.error.msg}`)
+                //console.log(`Conexão encerrada: ${messages.error.msg}`)
             }
         })
     }
@@ -644,7 +644,7 @@
 
     //Cmd conectado
     function cmdConnection() {
-        console.log("Conectado no Ws de chat!")
+        //console.log("Conectado no Ws de chat!")
     }
 
 

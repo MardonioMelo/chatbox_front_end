@@ -209,6 +209,10 @@ body {
     max-width: 70%;
 }
 
+.messages__info {         
+    background: #ffc107;
+}
+
 .messages__item--visitor,
 .messages__item--typing {
     border-top-left-radius: 20px;

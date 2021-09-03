@@ -62,11 +62,6 @@
         return h
     }
 
-    //Adicionar mais scroll
-    function addScroll() {
-        print_msg.scrollTop += 500
-    }
-
     //Botões de ação
     function actionButtons() {
         chatButton.onclick = () => chatboxContent()
@@ -187,8 +182,7 @@
                         console.log(res.data.error.msg)
                     }
                 })
-                .catch(function (err) {
-                    console.log(err)
+                .catch(function (err) {                  
                     console.log('Não foi possível gerar sua autentificação, erro na conexão com o servidor HTTP.')
                 });
         } else {
@@ -290,9 +284,10 @@
 
     //Comando ao criar call
     function cmdCallCreate(res) {
-        let data = res.error.data
         sessionStorage.setItem("chatbox_content", "waiting_line")
-        sessionStorage.setItem("chatbox_call", JSON.stringify(data))
+        sendMessage({
+            "cmd": "cmd_call_check_open"
+        })
     }
 
     //Comando de call aberta
@@ -321,23 +316,26 @@
     //Comando do número da fila de espera
     function cmdNWaitingLine(res) {
         let data = res.error.data
-        let chatbox_content = sessionStorage.getItem("chatbox_content")
         let chatbox_row = sessionStorage.getItem("chatbox_row")
+        let chatbox_content = sessionStorage.getItem("chatbox_content")
         let row
 
-        if (!chatbox_row) {
-            row = data.row
-        } else if (Number(data.row) >= Number(chatbox_row)) {
-            row = chatbox_row
-        } else {
-            row = data.row
-        }
+        if (chatbox_content == "waiting_line") {
 
-        if (Number(data.row) == 1 && chatbox_content == "waiting_line") {
-            formCreateCall()
-        } else {
-            sessionStorage.setItem("chatbox_row", row)
-            showWaitingMessage(row)
+            if (!chatbox_row) {
+                row = data.row
+            } else if (Number(data.row) >= Number(chatbox_row)) {
+                row = chatbox_row
+            } else {
+                row = data.row
+            }
+
+            if (Number(data.row) == 1) {
+                formCreateCall()
+            } else {
+                sessionStorage.setItem("chatbox_row", row)
+                showWaitingMessage(row)
+            }
         }
     }
 
@@ -392,7 +390,7 @@
 
     //Formulário de avaliação do atendimento
     function formCallEvaluation() {
-        let html = ` <div class="text-center p-2 mb-3">
+        let html = ` <div class="text-center mt-2">
                         <span>Por favor, avalie nosso atendimento:</span>
                     </div>
                     <div class="form-check">
@@ -431,6 +429,7 @@
                         </button>
                     </div>`
         print_msg.innerHTML = html
+        print_input_footer.innerHTML = ""
         sessionStorage.setItem("chatbox_content", "call_evaluation")
         document.getElementById('j_call_evaluation').onclick = () => sendCallEvaluation()
     }
@@ -445,8 +444,11 @@
                 "evaluation": evaluation
             })
         }
-
-        initSocket(getToken(), false, sendData)
+        if (conn_ws) {
+            sendData()
+        } else {
+            initSocket(getToken(), false, sendData)
+        }
     }
 
     //Limpar sessão
@@ -472,14 +474,19 @@
         print_msg.innerHTML = ''
         print_input_footer.innerHTML = html_form
         document.getElementById('j_btn_send').onclick = () => submitMsg()
-        document.getElementById('j_input_send').onkeypress = (e) => {
+        document.getElementById('j_input_send').onkeydown = (e) => {
             if (e.key == 'Enter') {
                 submitMsg()
                 return false
             }
         }
 
-        initSocket(getToken(), false, requestHistory)
+        if (conn_ws) {
+            requestHistory()
+        } else {
+            initSocket(getToken(), true, requestHistory)
+        }
+
         sessionStorage.setItem("chatbox_content", "call_start")
     }
 
@@ -487,14 +494,12 @@
     function printMsgClient(text, time) {
         let html = `<div class="messages__item messages__item--operator">${text} <h6>${time}</h6></div>`
         print_msg.insertAdjacentHTML('beforeend', html)
-        addScroll()
     }
 
     //Print msg do atendente
     function printMsgAttendant(text, time) {
         let html = `<div class="messages__item messages__item--visitor">${text} <h6>${time}</h6></div>`
         print_msg.insertAdjacentHTML('beforeend', html)
-        addScroll()
     }
 
     //Enviar mensagem
@@ -515,7 +520,34 @@
 
     //Print das mensagens recebidas
     function cmdCallMsg(res) {
-        printMsgAttendant(res.error.data.text, formatTime(res.error.data.date))
+        if (res.result) {
+            printMsgAttendant(res.error.data.text, formatTime(res.error.data.date))           
+        } else {
+            printMsgInfo(res.error.msg, formatTime(res.error.data.date))
+        }
+    }
+
+    //Print msg temporária informativa
+    function printMsgInfo(text, time) {
+        let d = new Date()
+        let id = `info_${d.getTime()}`
+        let html = `<div class="messages__item messages__item messages__item--visitor messages__info" id="${id}">
+                        Info: ${text} <h6>${time}</h6>
+                    </div>`
+        print_msg.insertAdjacentHTML('beforeend', html)
+        setTimeout(() => {
+            print_msg.removeChild(document.getElementById(id))
+        }, 3000)
+    }
+
+    //Print ação de digitando
+    function printMsgTyping() {
+        let html = `<div class="messages__item messages__item--typing">
+                        <span class="messages__dot"></span>
+                        <span class="messages__dot"></span>
+                        <span class="messages__dot"></span>
+                    </div>`
+        print_msg.insertAdjacentHTML('beforeend', html)
     }
 
 
@@ -577,8 +609,7 @@
 
         //Evento ao enviar/receber mensagens
         conn_ws.addEventListener('message', message => {
-            messages = JSON.parse(message.data)
-            console.log(messages)
+            messages = JSON.parse(message.data)         
             cmd[messages.error.data.cmd](messages)
         })
 
@@ -607,6 +638,7 @@
     function closeConn() {
         if (conn_ws) {
             conn_ws.close()
+            conn_ws = null
         }
     }
 
